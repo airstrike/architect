@@ -1,0 +1,9 @@
+[package]
+name = "architect"
+version = "0.1.0"
+edition = "2021"
+authors = ["Andy Terra <spam@andyterra.com>"]
+
+[dependencies]
+iced = { version = "0.13.1", features = ["tokio"] }
+tokio = { version = "1.40.0", features = ["time"] }
