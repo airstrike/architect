@@ -5,6 +5,10 @@ use iced::{Element, Task, Theme};
 fn main() -> iced::Result {
     iced::application("Architect (iced example)", App::update, App::view)
         .theme(App::theme)
+        .window(iced::window::Settings {
+            size: [500.0, 500.0].into(),
+            ..Default::default()
+        })
         .run_with(App::new)
 }
 
@@ -54,7 +58,7 @@ impl App {
     }
 
     pub fn theme(&self) -> Theme {
-        iced::Theme::default()
+        iced::Theme::Ferra
     }
 
     fn update(&mut self, message: Message) {
