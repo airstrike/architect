@@ -53,17 +53,25 @@ impl std::fmt::Display for Screen {
 
 impl App {
     pub fn new() -> (Self, Task<Message>) {
-        let task = Task::perform(load_users(), Message::LoadUsers);
-        (Self::default(), task)
+        // let task = Task::perform(/* any other initialization tasks here */);
+        (Self::default(), Task::none())
     }
 
     pub fn theme(&self) -> Theme {
         iced::Theme::Ferra
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Navigate(screen) => self.screen = screen,
+            Message::Navigate(Screen::Users(u)) => {
+                self.screen = Screen::Users(u);
+                if let Users::Loading = self.users {
+                    return Task::perform(load_users(), Message::LoadUsers);
+                }
+            }
+            Message::Navigate(other_screen) => {
+                self.screen = other_screen;
+            }
             Message::Top(message) => {
                 if let Screen::Top(screen) = &mut self.screen {
                     screen.update(message);
@@ -83,6 +91,7 @@ impl App {
                 }
             },
         }
+        Task::none()
     }
 
     fn view(&self) -> Element<Message> {

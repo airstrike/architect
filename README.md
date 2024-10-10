@@ -8,7 +8,7 @@ This project demonstrates a simple example of an application using the `iced`
 crate to build a UI with two screens: a "Top" screen and a "Users" screen.
 
 It also includes basic navigation between the screens and simulates asynchronous
-loading of user data when the app is launched.
+loading of user data only when the users tab is first selected.
 
 <img src="./architect.gif" alt="Demo">
 
