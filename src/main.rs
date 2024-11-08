@@ -1,21 +1,36 @@
-use iced::widget::{button, center, column, row};
-use iced::Length::Fill;
-use iced::{Element, Task, Theme};
+use iced::widget::{button, column};
+use iced::Length::{self, Fill};
+use iced::{window, Element, Task, Theme};
+
+mod split;
+pub const INITIAL_DIVIDER_SIZE: u16 = 300;
+pub const MIN_DIVIDER_SIZE: u16 = 100;
+pub const MAX_DIVIDER_SIZE: u16 = 500;
 
 fn main() -> iced::Result {
     iced::application("Architect (iced example)", App::update, App::view)
         .theme(App::theme)
         .window(iced::window::Settings {
-            size: [500.0, 500.0].into(),
+            size: [1000.0, 500.0].into(),
             ..Default::default()
         })
         .run_with(App::new)
 }
 
-#[derive(Default)]
 struct App {
+    divider: Option<u16>,
     screen: Screen,
     users: Users,
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self {
+            divider: Some(INITIAL_DIVIDER_SIZE),
+            screen: Screen::default(),
+            users: Users::Loading,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -33,6 +48,7 @@ enum Message {
     Top(top::Message),
     Users(users::Message),
     LoadUsers(Result<Vec<String>, String>),
+    ResizeDivider(u16),
 }
 
 #[derive(Debug, Clone)]
@@ -63,14 +79,26 @@ impl App {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::ResizeDivider(size) => {
+                self.divider = Some(size.clamp(MIN_DIVIDER_SIZE, MAX_DIVIDER_SIZE));
+            }
             Message::Navigate(Screen::Users(u)) => {
                 self.screen = Screen::Users(u);
                 if let Users::Loading = self.users {
-                    return Task::perform(load_users(), Message::LoadUsers);
+                    return Task::batch([
+                        window::get_latest()
+                            .and_then(|id| window::resize(id, (600.0, 400.0).into())),
+                        Task::perform(load_users(), Message::LoadUsers),
+                    ]);
+                } else {
+                    return window::get_latest()
+                        .and_then(|id| window::resize(id, (600.0, 400.0).into()));
                 }
             }
             Message::Navigate(other_screen) => {
                 self.screen = other_screen;
+                return window::get_latest()
+                    .and_then(|id| window::resize(id, (500.0, 500.0).into()));
             }
             Message::Top(message) => {
                 if let Screen::Top(screen) = &mut self.screen {
@@ -101,19 +129,28 @@ impl App {
         };
 
         let top_button = button("Top")
+            .width(Length::Fixed(80.0))
             .on_press(Message::Navigate(Screen::Top(top::Screen::default())))
             .style(|theme, _status| tab_style(theme, &self.screen.to_string() == "Top"));
 
         let users_button = button("Users")
+            .width(Length::Fixed(80.0))
             .on_press(Message::Navigate(Screen::Users(users::Screen::default())))
             .style(|theme, _status| tab_style(theme, &self.screen.to_string() == "Users"));
 
-        let buttons = row![top_button, users_button]
+        let buttons = column![top_button, users_button]
             .width(Fill)
             .padding(10)
             .spacing(2);
 
-        column![buttons, center(screen)].into()
+        split::Split::new(
+            buttons,
+            screen,
+            self.divider,
+            split::Axis::Vertical,
+            Message::ResizeDivider,
+        )
+        .into()
     }
 }
 

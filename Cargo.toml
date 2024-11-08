@@ -5,5 +5,5 @@ edition = "2021"
 authors = ["Andy Terra <spam@andyterra.com>"]
 
 [dependencies]
-iced = { version = "0.13.1", features = ["tokio"] }
+iced = { version = "0.13.1", features = ["tokio", "debug", "advanced"] }
 tokio = { version = "1.40.0", features = ["time"] }
