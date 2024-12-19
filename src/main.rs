@@ -38,7 +38,7 @@ enum Message {
 #[derive(Debug, Clone)]
 enum Screen {
     Top(top::Screen),
-    Users(users::Screen),
+    Users,
 }
 
 // Hacky, sorry
@@ -46,7 +46,7 @@ impl std::fmt::Display for Screen {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Screen::Top(_) => write!(f, "Top"),
-            Screen::Users(_) => write!(f, "Users"),
+            Screen::Users => write!(f, "Users"),
         }
     }
 }
@@ -63,8 +63,8 @@ impl App {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Navigate(Screen::Users(u)) => {
-                self.screen = Screen::Users(u);
+            Message::Navigate(Screen::Users) => {
+                self.screen = Screen::Users;
                 if let Users::Loading = self.users {
                     return Task::perform(load_users(), Message::LoadUsers);
                 }
@@ -78,8 +78,8 @@ impl App {
                 }
             }
             Message::Users(message) => {
-                if let Screen::Users(screen) = &mut self.screen {
-                    screen.update(message);
+                if let Screen::Users = &mut self.screen {
+                    return users::update(message).map(Message::Users);
                 }
             }
             Message::LoadUsers(result) => match result {
@@ -97,7 +97,7 @@ impl App {
     fn view(&self) -> Element<Message> {
         let screen = match &self.screen {
             Screen::Top(screen) => screen.view().map(Message::Top),
-            Screen::Users(screen) => screen.view(&self.users).map(Message::Users),
+            Screen::Users => users::view(&self.users).map(Message::Users),
         };
 
         let top_button = button("Top")
@@ -105,7 +105,7 @@ impl App {
             .style(|theme, _status| tab_style(theme, &self.screen.to_string() == "Top"));
 
         let users_button = button("Users")
-            .on_press(Message::Navigate(Screen::Users(users::Screen::default())))
+            .on_press(Message::Navigate(Screen::Users))
             .style(|theme, _status| tab_style(theme, &self.screen.to_string() == "Users"));
 
         let buttons = row![top_button, users_button]
@@ -164,33 +164,32 @@ mod top {
 
 mod users {
     use iced::widget::{container, text, Column};
-    use iced::{Center, Element, Length};
+    use iced::{Center, Element, Length, Task};
 
     use crate::Users;
-
-    #[derive(Debug, Default, Clone)]
-    pub struct Screen {}
 
     #[derive(Debug, Clone)]
     pub enum Message {}
 
-    impl Screen {
-        pub fn update(&mut self, _message: Message) {}
-        pub fn view<'a>(&self, users: &'a Users) -> Element<'a, Message> {
-            match users {
-                Users::Loading => container(text("Loading users...")).into(),
-                Users::Loaded(users) => Column::from_iter(users.iter().map(|user| {
-                    container(text(user))
-                        .padding(2)
-                        .style(container::rounded_box)
-                        .width(Length::Fill)
-                        .into()
-                }))
-                .width(Length::Fixed(200.0))
-                .align_x(Center)
-                .spacing(10)
-                .into(),
-            }
+    #[must_use]
+    pub fn update(_message: Message) -> Task<Message> {
+        Task::none()
+    }
+
+    pub fn view<'a>(users: &'a Users) -> Element<'a, Message> {
+        match users {
+            Users::Loading => container(text("Loading users...")).into(),
+            Users::Loaded(users) => Column::from_iter(users.iter().map(|user| {
+                container(text(user))
+                    .padding(2)
+                    .style(container::rounded_box)
+                    .width(Length::Fill)
+                    .into()
+            }))
+            .width(Length::Fixed(200.0))
+            .align_x(Center)
+            .spacing(10)
+            .into(),
         }
     }
 }
